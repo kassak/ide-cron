@@ -37,13 +37,13 @@ public final class CronDaemon implements Disposable {
 
   public CronDaemon(@Nullable Project myProject) {
     this.myProject = myProject;
-    myTab.update(new CronTask(1, "do smth",
-      new CronStyleSchedule(new CronStyleSchedule.CronExpr("*/10", "*", "*", "*", "*", "*")),
-      new BeforeRunAction(),
-      true
-      ));
+  }
+
+  public void updateTask(@NotNull CronTask task) {
+    myTab.update(task);
     reschedule();
   }
+
 
   @Override
   public void dispose() {
