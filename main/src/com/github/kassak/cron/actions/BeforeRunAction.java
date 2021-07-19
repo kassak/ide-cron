@@ -3,28 +3,33 @@ package com.github.kassak.cron.actions;
 import com.github.kassak.cron.CronAction;
 import com.intellij.configurationStore.XmlSerializer;
 import com.intellij.execution.*;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.configurations.UnknownConfigurationType;
+import com.intellij.execution.configurations.*;
 import com.intellij.execution.executors.DefaultRunExecutor;
-import com.intellij.execution.impl.ExecutionManagerImpl;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
+import com.intellij.execution.runners.ProgramRunner;
+import com.intellij.execution.ui.ConsoleView;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.NotNullLazyValue;
 import com.intellij.util.containers.JBIterable;
 import org.jdom.Element;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.concurrency.Promise;
+import org.jetbrains.concurrency.Promises;
 
 import javax.swing.*;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -139,42 +144,23 @@ public class BeforeRunAction implements CronAction {
     return new BeforeRunAction(element);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  @Override
   public void perform(@NotNull DataContext context) {
     Project project = getProject(context);
     BeforeRunTask<?> task = getTask(project);
     if (task == null) throw new ProcessCanceledException();
-    executeTask(project, context, (BeforeRunTask)task);
+    RunConfiguration configuration = getConfiguration(project);
+    configuration.setBeforeRunTasks(Collections.singletonList(task));
+    ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), configuration)
+      .contentToReuse(null)
+      .runner(new FakeProgramRunner())
+      .dataContext(null)
+      .activeTarget().build();
+    ProgramRunnerUtil.executeConfiguration(env, false, true);
   }
 
   @NotNull
   private static Project getProject(@NotNull DataContext context) {
     return Objects.requireNonNull(PlatformDataKeys.PROJECT.getData(context));
-  }
-
-  private <T extends BeforeRunTask<T>> void executeTask(@NotNull Project project, @NotNull DataContext context, @NotNull T task) {
-    RunConfiguration configuration = getConfiguration(project);
-    Executor executor = DefaultRunExecutor.getRunExecutorInstance();
-    ExecutionEnvironment env = ExecutionEnvironmentBuilder.Companion.create(executor, configuration)
-      .dataContext(context)
-      .build();
-    ExecutionManagerImpl.EXECUTION_SESSION_ID_KEY.set(env, env.getExecutionId());
-    BeforeRunTaskProvider<T> provider = BeforeRunTaskProvider.getProvider(project, task.getProviderId());
-    if (provider == null || !provider.canExecuteTask(configuration, task)) throw new ProcessCanceledException();
-    provider.executeTask(context, configuration, env, task);
-    simulateWork(project, executor, env);
-  }
-
-  private void simulateWork(@NotNull Project project, Executor executor, ExecutionEnvironment env) {
-    ExecutionListener publisher = project.getMessageBus().syncPublisher(ExecutionManager.EXECUTION_TOPIC);
-    MyProcessHandler ph = new MyProcessHandler();
-    publisher.processStarting(executor.getId(), env, ph);
-    ph.startNotify();
-    publisher.processStarted(executor.getId(), env, ph);
-    publisher.processTerminating(executor.getId(), env, ph);
-    ph.stop();
-    publisher.processTerminated(executor.getId(), env, ph, 0);
   }
 
   private BeforeRunTask<?> getTask(@NotNull Project project) {
@@ -207,7 +193,7 @@ public class BeforeRunAction implements CronAction {
 
   @NotNull
   private RunConfiguration getConfiguration(@NotNull Project project) {
-    return UnknownConfigurationType.getInstance().createTemplateConfiguration(project);
+    return new FakeRunConfiguration(project);
   }
 
   private static class MyProcessHandler extends ProcessHandler {
@@ -226,5 +212,85 @@ public class BeforeRunAction implements CronAction {
     @Override
     public @Nullable
     OutputStream getProcessInput() { return null; }
+  }
+
+
+  private static class FakeRunConfigurationType extends SimpleConfigurationType {
+    private static final FakeRunConfigurationType INSTANCE = new FakeRunConfigurationType();
+    protected FakeRunConfigurationType() {
+      super("fake", "fake", null, NotNullLazyValue.createConstantValue(AllIcons.General.Error));
+    }
+
+    @Override
+    public @NotNull RunConfiguration createTemplateConfiguration(@NotNull Project project) {
+      return new FakeRunConfiguration(project);
+    }
+  }
+  private static class FakeRunConfiguration extends RunConfigurationBase<FakeRunConfiguration> {
+
+    protected FakeRunConfiguration(@NotNull Project project) {
+      super(project, null, "fake");
+    }
+
+    @Override
+    public @NotNull ConfigurationType getType() {
+      return FakeRunConfigurationType.INSTANCE;
+    }
+
+
+
+    @Override
+    public @NotNull SettingsEditor<? extends RunConfiguration> getConfigurationEditor() {
+      throw new AssertionError("Impossible@");
+    }
+
+    @Override
+    public @Nullable RunProfileState getState(@NotNull Executor executor, @NotNull ExecutionEnvironment executionEnvironment) {
+      return new CommandLineState(executionEnvironment) {
+        @Override
+        protected @Nullable ConsoleView createConsole(@NotNull Executor executor) {
+          return null;
+        }
+
+        @Override
+        protected @NotNull ProcessHandler startProcess() {
+          MyProcessHandler ph = new MyProcessHandler();
+          ph.startNotify();
+          ph.stop();
+          return ph;
+        }
+      };
+    }
+  }
+
+  private static class FakeProgramRunner implements ProgramRunner<RunnerSettings> {
+    @Override
+    public @NotNull
+    @NonNls
+    String getRunnerId() {
+      return "fake";
+    }
+
+    @Override
+    public boolean canRun(@NotNull String s, @NotNull RunProfile runProfile) {
+      return runProfile instanceof FakeRunConfiguration;
+    }
+
+    @Override
+    public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
+      RunProfileState state = environment.getState();
+      if (state != null) {
+        ExecutionManager.getInstance(environment.getProject()).startRunProfile(environment, () -> {
+          FileDocumentManager.getInstance().saveAllDocuments();
+          try {
+            state.execute(environment.getExecutor(), this);
+            return Promises.resolvedPromise(null);
+          }
+          catch (ExecutionException e) {
+            return Promises.rejectedPromise(e);
+          }
+        });
+      }
+    }
   }
 }
