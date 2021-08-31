@@ -7,15 +7,19 @@ import com.github.kassak.cron.CronTask;
 import com.github.kassak.cron.actions.EmptyAction;
 import com.github.kassak.cron.schedules.CronStyleSchedule;
 import com.github.kassak.cron.schedules.EmptySchedule;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ComponentManager;
 import com.intellij.openapi.options.ConfigurableBase;
 import com.intellij.openapi.options.ConfigurableUi;
 import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.ui.AnActionButton;
 import com.intellij.ui.ColoredTableCellRenderer;
 import com.intellij.ui.TableCellState;
 import com.intellij.ui.ToolbarDecorator;
@@ -63,7 +67,6 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
     return new CronUi(myProject);
   }
 
-
   public static final class CronUi implements ConfigurableUi<State>, Disposable {
     private final Project myProject;
     private final ListTableModel<CronTask> myModel;
@@ -80,7 +83,8 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
       ) {
         @Override
         public void addRow() {
-          addRow(new CronTask(-1, null, EmptySchedule.INSTANCE, EmptyAction.INSTANCE, true));
+          CronStyleSchedule schedule = new CronStyleSchedule(new CronStyleSchedule.CronExpr("*", "*", "*", "*", "*", "*"));
+          addRow(new CronTask(-1, null, schedule, EmptyAction.INSTANCE, true));
         }
       };
       myTable = new TableView<>(myModel);
@@ -229,23 +233,36 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
       @Override
       public @NotNull TableCellEditor getEditor(CronTask cronTask) {
         return new AbstractTableCellEditor() {
-          private final JTextField myField = new JTextField();
+          private final JComponent myPanel = new JPanel(new BorderLayout());
+          private CronSchedule.EditorDesc myCurrent = EmptySchedule.INSTANCE.getEditor();
+          private final ActionToolbar myToolbar;
 
+          {
+            DumbAwareAction action = new DumbAwareAction(AllIcons.Actions.MoreHorizontal) {
+              @Override
+              public void actionPerformed(@NotNull AnActionEvent e) {
+
+              }
+            };
+            myToolbar = ActionManager.getInstance().createActionToolbar("some", new DefaultActionGroup(action), true);
+//            myToolbar.setMiniMode(true);
+            myToolbar.setReservePlaceAutoPopupIcon(false);
+            myToolbar.setTargetComponent(myPanel);
+          }
           @Override
           public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            myField.setText(String.valueOf(value));
-            return myField;
+            CronSchedule sched = ObjectUtils.tryCast(value, CronSchedule.class);
+            if (sched == null) sched = EmptySchedule.INSTANCE;
+            myCurrent = sched.getEditor();
+            myPanel.removeAll();
+            myPanel.add(myToolbar.getComponent(), BorderLayout.EAST);
+            myPanel.add(myCurrent.component, BorderLayout.CENTER);
+            return myPanel;
           }
 
           @Override
           public Object getCellEditorValue() {
-            List<String> split = StringUtil.split(myField.getText(), ":");
-            if (split.size() != 6) return EmptySchedule.INSTANCE;
-            CronStyleSchedule.CronExpr expr = new CronStyleSchedule.CronExpr(
-              split.get(0), split.get(1), split.get(2),
-              split.get(3), split.get(4), split.get(5)
-            );
-            return new CronStyleSchedule(expr);
+            return myCurrent.getter.get();
           }
         };
       }

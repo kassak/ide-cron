@@ -15,10 +15,12 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalField;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 public class CronStyleSchedule implements CronSchedule {
@@ -42,6 +44,24 @@ public class CronStyleSchedule implements CronSchedule {
   @Override
   public String getDescription(@Nullable Project project) {
     return myExpr.toString();
+  }
+
+  @NotNull
+  @Override
+  public EditorDesc getEditor() {
+    JTextField editor = new JTextField(myExpr.toString());
+    return new EditorDesc(editor, () -> {
+      List<String> split = StringUtil.split(editor.getText(), ":");
+      if (split.size() != 6) return this;
+      return new CronStyleSchedule(new CronExpr(
+        split.get(0),
+        split.get(1),
+        split.get(2),
+        split.get(3),
+        split.get(4),
+        split.get(5)
+      ));
+    });
   }
 
   public static class CronExpr {

@@ -3,6 +3,7 @@ package com.github.kassak.cron.schedules;
 import com.github.kassak.cron.CronDaemon;
 import com.github.kassak.cron.CronSchedule;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.components.JBLabel;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,5 +20,11 @@ public class EmptySchedule implements CronSchedule {
   @Override
   public String getDescription(@Nullable Project project) {
     return "No schedule";
+  }
+
+  @NotNull
+  @Override
+  public EditorDesc getEditor() {
+    return new EditorDesc(new JBLabel("No schedule"), () -> this);
   }
 }
