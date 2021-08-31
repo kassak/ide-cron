@@ -2,6 +2,7 @@ package com.github.kassak.cron.schedules;
 
 import com.github.kassak.cron.CronDaemon;
 import com.github.kassak.cron.CronSchedule;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ArrayUtil;
@@ -37,6 +38,12 @@ public class CronStyleSchedule implements CronSchedule {
     return daemon.scheduleAt(r, next);
   }
 
+  @NotNull
+  @Override
+  public String getDescription(@Nullable Project project) {
+    return myExpr.toString();
+  }
+
   public static class CronExpr {
     public final String sec;
     public final String min;
@@ -52,6 +59,11 @@ public class CronStyleSchedule implements CronSchedule {
       this.monthDay = monthDay;
       this.month = month;
       this.weekDay = weekDay;
+    }
+
+    @Override
+    public String toString() {
+      return sec + ":" + min + ":" + hour + ":" + monthDay + ":" + month + ":" + weekDay;
     }
 
     public Compiled compile() {

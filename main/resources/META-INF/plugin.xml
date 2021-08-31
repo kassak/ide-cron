@@ -17,8 +17,15 @@
   </extensions>
 
   <actions>
-    <action id="cron.AddSchedule" class="com.github.kassak.cron.AddScheduleAction" text="Add Schedule"/>
+    <action id="cron.AddSchedule" class="com.github.kassak.cron.ui.AddScheduleAction" text="Add Schedule"/>
   </actions>
+
+
+  <extensions defaultExtensionNs="com.intellij">
+
+    <projectConfigurable groupId="tools" groupWeight="120" instance="com.github.kassak.cron.ui.CronConfigurable"
+                             id="cron.schedule"/>
+  </extensions>
 
   <projectListeners>
     <listener class="com.github.kassak.cron.CronDaemon$Listener"

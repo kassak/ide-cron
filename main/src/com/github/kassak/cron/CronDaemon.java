@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +36,9 @@ public final class CronDaemon implements Disposable {
   private final CronTab myTab = new CronTab();
   private final Int2ObjectMap<ScheduledFuture<?>> myPending = new Int2ObjectOpenHashMap<>();
 
+  public CronDaemon() {
+    this(null);
+  }
   public CronDaemon(@Nullable Project myProject) {
     this.myProject = myProject;
   }
@@ -44,6 +48,10 @@ public final class CronDaemon implements Disposable {
     reschedule();
   }
 
+  @NotNull
+  public List<CronTask> getTasks() {
+    return myTab.tasks();
+  }
 
   @Override
   public void dispose() {

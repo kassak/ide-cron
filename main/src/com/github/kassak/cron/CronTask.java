@@ -1,5 +1,6 @@
 package com.github.kassak.cron;
 
+import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,5 +22,10 @@ public class CronTask {
 
   public CronTask enabled(boolean e) {
     return new CronTask(id, description, schedule, action, e);
+  }
+
+  public String getDescription(@Nullable Project project) {
+    if (description != null) return description;
+    return action.getText(project);
   }
 }

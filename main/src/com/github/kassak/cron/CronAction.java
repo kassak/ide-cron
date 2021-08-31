@@ -5,6 +5,7 @@ import com.intellij.openapi.extensions.ExtensionPointName;
 import com.intellij.openapi.project.Project;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.concurrent.CompletableFuture;
@@ -15,13 +16,13 @@ public interface CronAction {
   @NotNull
   String getId();
   @NotNull
-  Icon getIcon(@NotNull Project project);
+  Icon getIcon(@Nullable Project project);
   @NotNull
-  String getText(@NotNull Project project);
+  String getText(@Nullable Project project);
   void perform(@NotNull DataContext context);
 
   @NotNull
-  Iterable<CronAction> getTemplates(@NotNull Project project);
+  Iterable<CronAction> getTemplates(@Nullable Project project);
   @NotNull
   CompletionStage<CronAction> edit(@NotNull DataContext context);
   @NotNull

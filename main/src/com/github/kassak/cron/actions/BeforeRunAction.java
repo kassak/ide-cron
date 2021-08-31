@@ -73,7 +73,7 @@ public class BeforeRunAction implements CronAction {
 
   @NotNull
   @Override
-  public Icon getIcon(@NotNull Project project) {
+  public Icon getIcon(@Nullable Project project) {
     BeforeRunTaskProvider<BeforeRunTask<?>> provider = getProvider(project, myProviderId);
     BeforeRunTask<?> task = provider == null ? null : getTask(project);
     Icon icon = task == null ? null : provider.getTaskIcon(task);
@@ -83,7 +83,7 @@ public class BeforeRunAction implements CronAction {
 
   @NotNull
   @Override
-  public String getText(@NotNull Project project) {
+  public String getText(@Nullable Project project) {
     BeforeRunTaskProvider<BeforeRunTask<?>> provider = getProvider(project, myProviderId);
     BeforeRunTask<?> task = provider == null ? null : getTask(project);
     String text = task == null ? null : provider.getDescription(task);
@@ -93,7 +93,8 @@ public class BeforeRunAction implements CronAction {
 
   @NotNull
   @Override
-  public Iterable<CronAction> getTemplates(@NotNull Project project) {
+  public Iterable<CronAction> getTemplates(@Nullable Project project) {
+    if (project == null) return JBIterable.empty();
     RunConfiguration configuration = getConfiguration(project);
     return JBIterable.from(BeforeRunTaskProvider.EP_NAME.getExtensions(project))
       .filter(p -> p.createTask(configuration) != null)
@@ -163,15 +164,15 @@ public class BeforeRunAction implements CronAction {
     return Objects.requireNonNull(PlatformDataKeys.PROJECT.getData(context));
   }
 
-  private BeforeRunTask<?> getTask(@NotNull Project project) {
-    if (myTask == null) {
+  private BeforeRunTask<?> getTask(@Nullable Project project) {
+    if (myTask == null && project != null) {
       myTask = instantiate(project);
     }
     return myTask;
   }
 
-  private static @Nullable BeforeRunTaskProvider<BeforeRunTask<?>> getProvider(@NotNull Project project, String key) {
-    return BeforeRunTaskProvider.EP_NAME.findFirstSafe(project, p -> p.getId().toString().equals(key));
+  private static @Nullable BeforeRunTaskProvider<BeforeRunTask<?>> getProvider(@Nullable Project project, String key) {
+    return project == null ? null : BeforeRunTaskProvider.EP_NAME.findFirstSafe(project, p -> p.getId().toString().equals(key));
   }
 
   @Nullable
