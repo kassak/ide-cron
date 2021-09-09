@@ -27,7 +27,7 @@ public class AddScheduleAction extends AnAction {
     createActionPopup(project, ac -> {
       if (ac != null) {
         project.getService(CronDaemon.class).updateTask(new CronTask(
-          1, "do smth",
+          -1, "do smth",
           new CronStyleSchedule(new CronStyleSchedule.CronExpr("*/10", "*", "*", "*", "*", "*")),
           ac, true
         ));

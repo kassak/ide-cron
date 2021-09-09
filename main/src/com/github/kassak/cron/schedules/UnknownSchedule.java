@@ -47,7 +47,9 @@ public class UnknownSchedule implements CronSchedule {
   @NotNull
   @Override
   public EditorDesc getEditor() {
-    return new EditorDesc(new JBLabel(getDescription(null)), () -> this);
+    JBLabel component = new JBLabel(getDescription(null));
+    component.setEnabled(false);
+    return new EditorDesc(component, () -> this);
   }
 
   @Override

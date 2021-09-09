@@ -69,7 +69,7 @@ public class UnknownAction implements CronAction {
   public static void copyTo(@Nullable Element from, @NotNull Element to) {
     if (from != null) {
       for (Attribute attribute : from.getAttributes()) {
-        to.setAttribute(attribute.getName(), to.getValue());
+        to.setAttribute(attribute.getName(), attribute.getValue());
       }
       for (Content content : from.getContent()) {
         to.addContent(content);

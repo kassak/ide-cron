@@ -18,7 +18,7 @@ public class EmptyAction implements CronAction {
   @NotNull
   @Override
   public String getId() {
-    return "null";
+    return "empty";
   }
 
   @NotNull

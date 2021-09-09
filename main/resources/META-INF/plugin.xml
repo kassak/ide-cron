@@ -15,8 +15,10 @@
   <extensions defaultExtensionNs="cron">
     <action implementation="com.github.kassak.cron.actions.BeforeRunAction"/>
     <action implementation="com.github.kassak.cron.actions.RunConfigurationAction"/>
+    <action implementation="com.github.kassak.cron.actions.EmptyAction"/>
 
     <schedule implementation="com.github.kassak.cron.schedules.CronStyleSchedule"/>
+    <schedule implementation="com.github.kassak.cron.schedules.EmptySchedule"/>
   </extensions>
 
   <actions>

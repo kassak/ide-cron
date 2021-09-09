@@ -11,21 +11,48 @@ import java.util.List;
 
 public class CronTab {
   private final Int2ObjectMap<CronTask> myTasks = new Int2ObjectOpenHashMap<>();
+  private int myIdAllocator = 0;
 
   public synchronized List<CronTask> tasks() {
     return new ArrayList<>(myTasks.values());
   }
 
   public synchronized void update(@NotNull CronTask task) {
+    putTask(task);
+  }
+
+  private void putTask(@NotNull CronTask task) {
+    task = ensureIdentified(task);
     myTasks.put(task.id, task);
   }
 
-  public synchronized void replaceTasks(@NotNull List<CronTask> tasks) {
-    myTasks.clear();
-    for (CronTask task : tasks) {
-      myTasks.put(task.id, task);
-    }
+  @NotNull
+  private CronTask ensureIdentified(CronTask task) {
+    if (task.id != -1) return task;
+    return new CronTask(
+      allocateId(), task.description,
+      task.schedule, task.action,
+      task.enabled
+    );
+  }
 
+  public synchronized void replaceTasks(@NotNull List<CronTask> tasks) {
+    clear();
+    for (CronTask task : tasks) {
+      putTask(task);
+    }
+  }
+
+  private void clear() {
+    myTasks.clear();
+    myIdAllocator = 0;
+  }
+
+  private int allocateId() {
+    while (myTasks.containsKey(myIdAllocator)) {
+      ++myIdAllocator;
+    }
+    return myIdAllocator++;
   }
 
   public synchronized void remove(@Nullable CronTask task) {
@@ -47,10 +74,9 @@ public class CronTab {
   }
 
   public synchronized void deserialize(@NotNull Element element) {
-    myTasks.clear();
+    clear();
     for (Element task : element.getChildren("task")) {
-      CronTask t = CronTask.deserialize(task);
-      myTasks.put(t.id, t);
+      putTask(CronTask.deserialize(task));
     }
   }
 }

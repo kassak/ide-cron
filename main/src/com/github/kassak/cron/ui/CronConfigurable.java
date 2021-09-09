@@ -5,8 +5,10 @@ import com.github.kassak.cron.CronDaemon;
 import com.github.kassak.cron.CronSchedule;
 import com.github.kassak.cron.CronTask;
 import com.github.kassak.cron.actions.EmptyAction;
+import com.github.kassak.cron.actions.UnknownAction;
 import com.github.kassak.cron.schedules.CronStyleSchedule;
 import com.github.kassak.cron.schedules.EmptySchedule;
+import com.github.kassak.cron.schedules.UnknownSchedule;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
@@ -19,10 +21,7 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.ui.AnActionButton;
-import com.intellij.ui.ColoredTableCellRenderer;
-import com.intellij.ui.TableCellState;
-import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.*;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.ObjectUtils;
 import com.intellij.util.ui.AbstractTableCellEditor;
@@ -217,7 +216,7 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
           protected void customizeCellRenderer(@NotNull JTable table, @Nullable Object v, boolean b, boolean b1, int i, int i1) {
             CronSchedule sc = ObjectUtils.tryCast(v, CronSchedule.class);
             if (sc == null) sc = EmptySchedule.INSTANCE;
-            append(sc.getDescription(myProject));
+            append(sc.getDescription(myProject), sc instanceof UnknownSchedule ? SimpleTextAttributes.GRAY_ATTRIBUTES : SimpleTextAttributes.REGULAR_ATTRIBUTES);
           }
         };
       }
@@ -350,7 +349,7 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
             CronAction ac = ObjectUtils.tryCast(v, CronAction.class);
             if (ac == null) ac = EmptyAction.INSTANCE;
             setIcon(ac.getIcon(myProject));
-            append(ac.getText(myProject));
+            append(ac.getText(myProject), ac instanceof UnknownAction ? SimpleTextAttributes.GRAY_ATTRIBUTES : SimpleTextAttributes.REGULAR_ATTRIBUTES);
           }
         };
       }
