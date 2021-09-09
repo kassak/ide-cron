@@ -34,6 +34,7 @@ public class CronStyleSchedule implements CronSchedule {
   @Override
   public ScheduledFuture<?> schedule(@NotNull CronDaemon daemon, @NotNull Runnable r) {
     if (myCompiled == null) myCompiled = myExpr.compile();
+    if (myCompiled.isEmpty()) return null;
     LocalDateTime now = LocalDateTime.now();
     LocalDateTime next = myCompiled.next(now);
     System.out.println("now is -> " + now + " -> " + next);
@@ -304,6 +305,11 @@ public class CronStyleSchedule implements CronSchedule {
           res.put(s[i], i);
         }
         return res;
+      }
+
+      public boolean isEmpty() {
+        return sec.length == 0 && min.length == 0 && hour.length == 0
+          && monthDay.length == 0 && weekDay.length == 0 && month.length == 0;
       }
     }
 

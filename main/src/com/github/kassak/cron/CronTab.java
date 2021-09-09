@@ -19,6 +19,14 @@ public class CronTab {
     myTasks.put(task.id, task);
   }
 
+  public synchronized void replaceTasks(@NotNull List<CronTask> tasks) {
+    myTasks.clear();
+    for (CronTask task : tasks) {
+      myTasks.put(task.id, task);
+    }
+
+  }
+
   public synchronized void remove(@Nullable CronTask task) {
     if (task != null) remove(task.id);
   }

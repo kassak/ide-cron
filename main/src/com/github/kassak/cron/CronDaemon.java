@@ -53,6 +53,11 @@ public final class CronDaemon implements Disposable {
     return myTab.tasks();
   }
 
+  public void replaceTasks(@NotNull List<CronTask> tasks) {
+    myTab.replaceTasks(tasks);
+    reschedule();
+  }
+
   @Override
   public void dispose() {
     IntSet ids = freezePending();

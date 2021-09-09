@@ -38,6 +38,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, CronConfigurable.State> {
   public static final String ID = "cron.schedule";
@@ -55,10 +56,8 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
 
   @Override
   protected @NotNull State getSettings() {
-    ComponentManager container = myProject == null ? ApplicationManager.getApplication() : myProject;
-    List<CronTask> tasks = container.getService(CronDaemon.class).getTasks();
     State state = new State();
-    state.tasks = tasks;
+    state.reset(myProject);
     return state;
   }
 
@@ -106,11 +105,18 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
 
     @Override
     public boolean isModified(@NotNull State state) {
-      return false;
+      State currentState = new State();
+      save(currentState);
+      return !currentState.equals(state);
     }
 
     @Override
     public void apply(@NotNull State state) throws ConfigurationException {
+      save(state);
+      state.apply(myProject);
+    }
+
+    private void save(@NotNull State state) {
       state.tasks = new ArrayList<>(myModel.getItems());
     }
 
@@ -394,5 +400,29 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
 
   public static final class State {
     List<CronTask> tasks;
+
+    public void apply(@Nullable Project project) {
+      ComponentManager container = project == null ? ApplicationManager.getApplication() : project;
+      container.getService(CronDaemon.class).replaceTasks(tasks);
+
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (!(o instanceof State)) return false;
+      State state = (State) o;
+      return Objects.equals(tasks, state.tasks);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(tasks);
+    }
+
+    public void reset(@Nullable Project project) {
+      ComponentManager container = project == null ? ApplicationManager.getApplication() : project;
+      tasks = container.getService(CronDaemon.class).getTasks();
+   }
   }
 }
