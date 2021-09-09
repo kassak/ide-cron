@@ -12,6 +12,7 @@ import it.unimi.dsi.fastutil.ints.IntComparators;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
+import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,8 +28,18 @@ public class CronStyleSchedule implements CronSchedule {
   private final CronExpr myExpr;
   private CronExpr.Compiled myCompiled;
 
+  public CronStyleSchedule() {
+    this(new CronExpr("*", "*", "*", "*", "*", "*"));
+  }
+
   public CronStyleSchedule(@NotNull CronExpr expr) {
     this.myExpr = expr;
+  }
+
+  @NotNull
+  @Override
+  public String getId() {
+    return "cron";
   }
 
   @Override
@@ -52,17 +63,37 @@ public class CronStyleSchedule implements CronSchedule {
   public EditorDesc getEditor() {
     JTextField editor = new JTextField(myExpr.toString());
     return new EditorDesc(editor, () -> {
-      List<String> split = StringUtil.split(editor.getText(), ":");
-      if (split.size() != 6) return this;
-      return new CronStyleSchedule(new CronExpr(
-        split.get(0),
-        split.get(1),
-        split.get(2),
-        split.get(3),
-        split.get(4),
-        split.get(5)
-      ));
+      String text = editor.getText();
+      CronExpr expr = parseExpr(text);
+      if (expr == null) return this;
+      return new CronStyleSchedule(expr);
     });
+  }
+
+  @Nullable
+  private static CronExpr parseExpr(String text) {
+    if (text == null) return null;
+    List<String> split = StringUtil.split(text, ":");
+    if (split.size() != 6) return null;
+    return new CronExpr(
+      split.get(0),
+      split.get(1),
+      split.get(2),
+      split.get(3),
+      split.get(4),
+      split.get(5)
+    );
+  }
+
+  @Override
+  public void serialize(@NotNull Element schedule) {
+    schedule.setAttribute("expr", myExpr.toString());
+  }
+
+  @Override
+  public CronStyleSchedule deserialize(@NotNull Element schedule) {
+    CronExpr expr = parseExpr(schedule.getAttributeValue("expr"));
+    return expr == null ? this : new CronStyleSchedule(expr);
   }
 
   public static class CronExpr {

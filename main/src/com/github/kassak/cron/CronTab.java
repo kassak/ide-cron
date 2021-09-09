@@ -2,6 +2,7 @@ package com.github.kassak.cron;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,5 +34,23 @@ public class CronTab {
 
   public synchronized void remove(int id) {
     myTasks.remove(id);
+  }
+
+  @NotNull
+  public Element serialize(@NotNull Element schedule) {
+    for (CronTask task : tasks()) {
+      Element t = new Element("task");
+      task.serialize(t);
+      schedule.addContent(t);
+    }
+    return schedule;
+  }
+
+  public synchronized void deserialize(@NotNull Element element) {
+    myTasks.clear();
+    for (Element task : element.getChildren("task")) {
+      CronTask t = CronTask.deserialize(task);
+      myTasks.put(t.id, t);
+    }
   }
 }

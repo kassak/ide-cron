@@ -1,27 +1,26 @@
 package com.github.kassak.cron;
 
-import com.github.kassak.cron.actions.BeforeRunAction;
-import com.github.kassak.cron.schedules.CronStyleSchedule;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
+import com.intellij.openapi.components.State;
+import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.wm.IdeFrame;
 import com.intellij.openapi.wm.WindowManager;
-import com.intellij.openapi.wm.impl.ProjectFrameHelper;
-import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.concurrency.EdtScheduledExecutorService;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -29,7 +28,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public final class CronDaemon implements Disposable {
+@State(name = "CronDaemon", storages = @Storage("cron.xml"))
+public final class CronDaemon implements PersistentStateComponent<Element>, Disposable {
   private static final Logger LOG = Logger.getInstance(CronDaemon.class);
   @Nullable
   private final Project myProject;
@@ -39,8 +39,8 @@ public final class CronDaemon implements Disposable {
   public CronDaemon() {
     this(null);
   }
-  public CronDaemon(@Nullable Project myProject) {
-    this.myProject = myProject;
+  public CronDaemon(@Nullable Project project) {
+    myProject = project;
   }
 
   public void updateTask(@NotNull CronTask task) {
@@ -128,6 +128,18 @@ public final class CronDaemon implements Disposable {
 
   private String getDescription(@NotNull CronTask task) {
     return task.description == null ? task.action.getClass().getSimpleName() : task.description;
+  }
+
+  @Override
+  public @NotNull Element getState() {
+    Element schedule = new Element("schedule");
+    return myTab.serialize(schedule);
+  }
+
+  @Override
+  public void loadState(@NotNull Element element) {
+    myTab.deserialize(element);
+    reschedule();
   }
 
   public static class Listener implements ProjectManagerListener {

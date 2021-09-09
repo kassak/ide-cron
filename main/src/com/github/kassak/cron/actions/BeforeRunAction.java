@@ -34,6 +34,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import static com.github.kassak.cron.actions.UnknownAction.copyTo;
+
 public class BeforeRunAction implements CronAction {
   private final String myProviderId;
   private final Element mySerialized;
@@ -133,10 +135,9 @@ public class BeforeRunAction implements CronAction {
     return edited;
   }
 
-  @NotNull
   @Override
-  public Element serialize() {
-    return mySerialized;
+  public void serialize(@NotNull Element action) {
+    copyTo(mySerialized, action);
   }
 
   @NotNull

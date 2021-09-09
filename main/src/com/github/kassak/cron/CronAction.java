@@ -1,5 +1,6 @@
 package com.github.kassak.cron;
 
+import com.github.kassak.cron.actions.UnknownAction;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.extensions.ExtensionPointName;
 import com.intellij.openapi.project.Project;
@@ -25,8 +26,14 @@ public interface CronAction {
   Iterable<CronAction> getTemplates(@Nullable Project project);
   @NotNull
   CompletionStage<CronAction> edit(@NotNull DataContext context);
+  void serialize(@NotNull Element action);
   @NotNull
-  Element serialize();
+  CronAction deserialize(@NotNull Element action);
+
   @NotNull
-  CronAction deserialize(@NotNull Element element);
+  static CronAction getById(@Nullable String id) {
+    if (id == null) return new UnknownAction("unknown", null);
+    CronAction existing = EP_NAME.getByKey(id, CronAction.class, CronAction::getId);
+    return existing == null ? new UnknownAction(id, null) : existing;
+  }
 }

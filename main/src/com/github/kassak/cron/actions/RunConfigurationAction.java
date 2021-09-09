@@ -103,12 +103,9 @@ public class RunConfigurationAction implements CronAction {
     return CompletableFuture.completedFuture(this);
   }
 
-  @NotNull
   @Override
-  public Element serialize() {
-    Element res = new Element("run-configuration");
-    res.setAttribute("name", myRunConfigurationName);
-    return res;
+  public void serialize(@NotNull Element action) {
+    action.setAttribute("name", myRunConfigurationName);
   }
 
   @NotNull
