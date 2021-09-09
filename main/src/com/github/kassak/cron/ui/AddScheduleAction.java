@@ -3,6 +3,7 @@ package com.github.kassak.cron.ui;
 import com.github.kassak.cron.CronAction;
 import com.github.kassak.cron.CronDaemon;
 import com.github.kassak.cron.CronTask;
+import com.github.kassak.cron.actions.EmptyAction;
 import com.github.kassak.cron.schedules.CronStyleSchedule;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -45,7 +46,7 @@ public class AddScheduleAction extends AnAction {
     private final Consumer<CronAction> myFinalStep;
 
     public CronActionTypeStep(Project project, Consumer<CronAction> finalStep) {
-      super(project, "Actions", CronAction.EP_NAME.getExtensionList());
+      super(project, "Actions", ContainerUtil.filter(CronAction.EP_NAME.getExtensionList(), it -> !(it instanceof EmptyAction)));
       myFinalStep = finalStep;
     }
 

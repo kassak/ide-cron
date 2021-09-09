@@ -23,7 +23,9 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.*;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.table.TableView;
+import com.intellij.util.ModalityUiUtil;
 import com.intellij.util.ObjectUtils;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.AbstractTableCellEditor;
@@ -394,22 +396,50 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
       public @NotNull
       TableCellEditor getEditor(CronTask cronTask) {
         return new AbstractTableCellEditor() {
+          private final JComponent myPanel = new JPanel(new BorderLayout());
+          private final JBLabel myLabel = new JBLabel();
+          private CronAction myCurrent;
+
+          {
+            DumbAwareAction editAction = new DumbAwareAction(AllIcons.Actions.Edit) {
+              @Override
+              public void actionPerformed(@NotNull AnActionEvent e) {
+                myCurrent.edit(e.getDataContext())
+                  .thenAcceptAsync(c -> setCurrent(c), ApplicationManager.getApplication()::invokeLater);
+              }
+            };
+            DumbAwareAction moreAction = new DumbAwareAction(AllIcons.Actions.MoreHorizontal) {
+              @Override
+              public void actionPerformed(@NotNull AnActionEvent e) {
+                ListPopup popup = AddScheduleAction.createActionPopup(myProject, ac -> {
+                  setCurrent(ac);
+                });
+                popup.showInBestPositionFor(e.getDataContext());
+              }
+            };
+            ActionToolbar myToolbar = ActionManager.getInstance().createActionToolbar("some", new DefaultActionGroup(editAction, moreAction), true);
+            myToolbar.setReservePlaceAutoPopupIcon(false);
+            myToolbar.setTargetComponent(myPanel);
+            myPanel.add(myLabel, BorderLayout.CENTER);
+            myPanel.add(myToolbar.getComponent(), BorderLayout.EAST);
+          }
+
+          private void setCurrent(@Nullable CronAction action) {
+            if (action == null) return;
+            myCurrent = action;
+            myLabel.setIcon(action.getIcon(myProject));
+            myLabel.setText(action.getText(myProject));
+          }
+
           @Override
           public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            ListPopup popup = AddScheduleAction.createActionPopup(myProject, ac -> {
-              if (ac != null) {
-                setValue(cronTask, ac);
-              }
-              myTable.stopEditing();
-            });
-            Component comp = getRenderer(cronTask).getTableCellRendererComponent(table, value, isSelected, true, row, column);
-            UiNotifyConnector.doWhenFirstShown(comp, () -> popup.showUnderneathOf(comp));
-            return comp;
+            setCurrent(ObjectUtils.tryCast(value, CronAction.class));
+            return myPanel;
           }
 
           @Override
           public Object getCellEditorValue() {
-            return null;
+            return myCurrent;
           }
         };
 
