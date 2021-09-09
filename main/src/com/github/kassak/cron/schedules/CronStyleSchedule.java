@@ -29,10 +29,10 @@ public class CronStyleSchedule implements CronSchedule {
   private CronExpr.Compiled myCompiled;
 
   public CronStyleSchedule() {
-    this(new CronExpr("*", "*", "*", "*", "*", "*"));
+    this(null);
   }
 
-  public CronStyleSchedule(@NotNull CronExpr expr) {
+  public CronStyleSchedule(@Nullable CronExpr expr) {
     this.myExpr = expr;
   }
 
@@ -44,6 +44,7 @@ public class CronStyleSchedule implements CronSchedule {
 
   @Override
   public ScheduledFuture<?> schedule(@NotNull CronDaemon daemon, @NotNull Runnable r) {
+    if (myExpr == null) return null;
     if (myCompiled == null) myCompiled = myExpr.compile();
     if (myCompiled.isEmpty()) return null;
     LocalDateTime now = LocalDateTime.now();
@@ -55,13 +56,13 @@ public class CronStyleSchedule implements CronSchedule {
   @NotNull
   @Override
   public String getDescription(@Nullable Project project) {
-    return myExpr.toString();
+    return myExpr == null ? "Cron Expression" : myExpr.toString();
   }
 
   @NotNull
   @Override
   public EditorDesc getEditor() {
-    JTextField editor = new JTextField(myExpr.toString());
+    JTextField editor = new JTextField(myExpr == null ? "*:*:*:*:*:*" : myExpr.toString());
     return new EditorDesc(editor, () -> {
       String text = editor.getText();
       CronExpr expr = parseExpr(text);
@@ -87,7 +88,7 @@ public class CronStyleSchedule implements CronSchedule {
 
   @Override
   public void serialize(@NotNull Element schedule) {
-    schedule.setAttribute("expr", myExpr.toString());
+    if (myExpr != null) schedule.setAttribute("expr", myExpr.toString());
   }
 
   @Override

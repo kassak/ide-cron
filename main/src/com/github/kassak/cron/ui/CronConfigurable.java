@@ -19,11 +19,13 @@ import com.intellij.openapi.options.ConfigurableUi;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.ListPopup;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.*;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.ObjectUtils;
+import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.AbstractTableCellEditor;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
@@ -246,7 +248,19 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
             DumbAwareAction action = new DumbAwareAction(AllIcons.Actions.MoreHorizontal) {
               @Override
               public void actionPerformed(@NotNull AnActionEvent e) {
-
+                JBPopupFactory.getInstance().createPopupChooserBuilder(
+                  ContainerUtil.filter(CronSchedule.EP_NAME.getExtensionList(), it -> !(it instanceof EmptySchedule))
+                )
+                  .setAutoSelectIfEmpty(false)
+                  .setRenderer(new ColoredListCellRenderer<CronSchedule>() {
+                    @Override
+                    protected void customizeCellRenderer(@NotNull JList<? extends CronSchedule> jList, CronSchedule schedule, int i, boolean b, boolean b1) {
+                      append(schedule.getDescription(myProject));
+                    }
+                  })
+                  .setItemSelectedCallback(s -> setCurrent(s))
+                  .createPopup()
+                  .showInBestPositionFor(e.getDataContext());
               }
             };
             myToolbar = ActionManager.getInstance().createActionToolbar("some", new DefaultActionGroup(action), true);
@@ -263,6 +277,13 @@ public class CronConfigurable extends ConfigurableBase<CronConfigurable.CronUi, 
             myPanel.add(myToolbar.getComponent(), BorderLayout.EAST);
             myPanel.add(myCurrent.component, BorderLayout.CENTER);
             return myPanel;
+          }
+
+          private void setCurrent(@NotNull CronSchedule schedule) {
+            if (myCurrent.getter.get().getId().equals(schedule.getId())) return;
+            myPanel.remove(myCurrent.component);
+            myCurrent = schedule.getEditor();
+            myPanel.add(myCurrent.component, BorderLayout.CENTER);
           }
 
           @Override
